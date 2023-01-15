@@ -1,17 +1,27 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import GridSquare from './GridSquare'
 import { shapes } from '../utils'
+import { moveDown } from '../actions'
 
 export default function GridBoard(props) {
+    const requestRef = useRef()
+    const lastUpdateTimeRef = useRef(0)
+    const progressTimeRef = useRef(0)
+    const dispatch = useDispatch()
     const game = useSelector((state) => state.game)
     const { grid, shape, rotation, x, y, isRunning, speed } = game
 
     const block = shapes[shape][rotation]
-  const blockColor = shape
-  // map rows
-  const gridSquares = grid.map((rowArray, row) => {
+    const blockColor = shape
+    // map rows
+    const gridSquares = grid.map((rowArray, row) => {
     // map columns
+    useEffect(() => {
+        requestRef.current = requestAnimationFrame(update)
+        return () => cancelAnimationFrame(requestRef.current)
+    }, [isRunning])
+    
     return rowArray.map((square, col) => {
       // Find the block x and y on the shape grid
       // By subtracting the x and y from the col and the row we get the position of the upper left corner of the block array as if it was superimposed over the main grid
@@ -31,6 +41,23 @@ export default function GridBoard(props) {
               color={color} />
     })
   })
+
+  const update = (time) => {
+    requestRef.current = requestAnimationFrame(update)
+    if (!isRunning) {
+        return 
+    }
+    if (!lastUpdateTimeRef.current) {
+        lastUpdateTimeRef.current = time
+    }
+    const deltaTime = time - lastUpdateTimeRef.current
+    progressTimeRef.current += deltaTime
+    if (progressTimeRef.current > speed) {
+        dispatch(moveDown())
+        progressTimeRef.current = 0
+    }
+    lastUpdateTimeRef.current = time
+} 
 
     return (
         <div className='grid-board'>
